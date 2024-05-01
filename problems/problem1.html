@@ -106,6 +106,14 @@
     let links = robot.links;
     let kh = robot.kinematic_hierarchy;
 
+    let dof_limits = [];
+    for (let i = 0; i < joints.length; i++) {
+        let joint_type = joints[i].joint_type_string;
+        if (joint_type === "revolute" || joint_type === "prismatic") {
+            dof_limits.push([joints[i].lower_bound, joints[i].upper_bound]);
+        }
+    }
+
     let settings = {
         display_mesh: true,
         display_wireframe: false,
@@ -117,6 +125,26 @@
         dof5: 0,
         dof6: 0,
         dof7: 0,
+        link0: false,
+        link1: false,
+        link2: false,
+        link3: false,
+        link4: false,
+        link5: false,
+        link6: false,
+        link7: false,
+        link8: false,
+        link9: false,
+        link10: false,
+        link11: false,
+        link12: false,
+        link13: false,
+        link14: false,
+        link15: false,
+        link16: false,
+        link17: false,
+        link18: false,
+        link19: false
     };
 
     let actions = {
@@ -131,6 +159,50 @@
             settings.dof5 = 0;
             settings.dof6 = 0;
             settings.dof7 = 0;
+        },
+        select_all: function() {
+            settings.link0 = true;
+            settings.link1 = true;
+            settings.link2 = true;
+            settings.link3 = true;
+            settings.link4 = true;
+            settings.link5 = true;
+            settings.link6 = true;
+            settings.link7 = true;
+            settings.link8 = true;
+            settings.link9 = true;
+            settings.link10 = true;
+            settings.link11 = true;
+            settings.link12 = true;
+            settings.link13 = true;
+            settings.link14 = true;
+            settings.link15 = true;
+            settings.link16 = true;
+            settings.link17 = true;
+            settings.link18 = true;
+            settings.link19 = true;
+        },
+        deselect_all: function() {
+            settings.link0 = false;
+            settings.link1 = false;
+            settings.link2 = false;
+            settings.link3 = false;
+            settings.link4 = false;
+            settings.link5 = false;
+            settings.link6 = false;
+            settings.link7 = false;
+            settings.link8 = false;
+            settings.link9 = false;
+            settings.link10 = false;
+            settings.link11 = false;
+            settings.link12 = false;
+            settings.link13 = false;
+            settings.link14 = false;
+            settings.link15 = false;
+            settings.link16 = false;
+            settings.link17 = false;
+            settings.link18 = false;
+            settings.link19 = false;
         }
     }
 
@@ -140,22 +212,62 @@
     folder1.add(settings, 'display_mesh').name("Display Mesh:");
     folder1.add(settings, 'display_wireframe').name("Display Wireframe:");
 
+    console.log(dof_limits);
+
     let folder2 = gui.addFolder("DOFs");
-    folder2.add(settings, 'dof0', 0, 0.7).name("dof0:");
-    folder2.add(settings, 'dof1', -6.28, 6.28).name("dof1:");
-    folder2.add(settings, 'dof2', -2.1, 2.1).name("dof2:");
-    folder2.add(settings, 'dof3', -6.28, 6.28).name("dof3:");
-    folder2.add(settings, 'dof4', -0.2, 3.9).name("dof4:");
-    folder2.add(settings, 'dof5', -6.28, 6.28).name("dof5:");
-    folder2.add(settings, 'dof6', -1.7, 3.14).name("dof6:");
-    folder2.add(settings, 'dof7', -6.28, 6.28).name("dof7:");
+    folder2.add(settings, 'dof0', dof_limits[0][0], dof_limits[0][1]).name("dof0:");
+    folder2.add(settings, 'dof1', dof_limits[1][0], dof_limits[1][1]).name("dof1:");
+    folder2.add(settings, 'dof2', dof_limits[2][0], dof_limits[2][1]).name("dof2:");
+    folder2.add(settings, 'dof3', dof_limits[3][0], dof_limits[3][1]).name("dof3:");
+    folder2.add(settings, 'dof4', dof_limits[4][0], dof_limits[4][1]).name("dof4:");
+    folder2.add(settings, 'dof5', dof_limits[5][0], dof_limits[5][1]).name("dof5:");
+    folder2.add(settings, 'dof6', dof_limits[6][0], dof_limits[6][1]).name("dof6:");
+    folder2.add(settings, 'dof7', dof_limits[7][0], dof_limits[7][1]).name("dof7:");
 
     let folder3 = gui.addFolder("Actions");
     folder3.add(actions, 'reset').name("Reset");
+    folder3.add(actions, 'select_all').name("Select All Links");
+    folder3.add(actions, 'deselect_all').name("Deselect All Links");
+
+    let folder4 = gui.addFolder("Links");
+    folder4.add(settings, 'link0').name("Link 0: ");
+    folder4.add(settings, 'link1').name("Link 1: ");
+    folder4.add(settings, 'link2').name("Link 2: ");
+    folder4.add(settings, 'link3').name("Link 3: ");
+    folder4.add(settings, 'link4').name("Link 4: ");
+    folder4.add(settings, 'link5').name("Link 5: ");
+    folder4.add(settings, 'link6').name("Link 6: ");
+    folder4.add(settings, 'link7').name("Link 7: ");
+    folder4.add(settings, 'link8').name("Link 8: ");
+    folder4.add(settings, 'link9').name("Link 9: ");
+    folder4.add(settings, 'link10').name("Link 10: ");
+    folder4.add(settings, 'link11').name("Link 11: ");
+    folder4.add(settings, 'link12').name("Link 12: ");
+    folder4.add(settings, 'link13').name("Link 13: ");
+    folder4.add(settings, 'link14').name("Link 14: ");
+    folder4.add(settings, 'link15').name("Link 15: ");
+    folder4.add(settings, 'link16').name("Link 16: ");
+    folder4.add(settings, 'link17').name("Link 17: ");
+    folder4.add(settings, 'link18').name("Link 18: ");
+    folder4.add(settings, 'link19').name("Link 19: ");
 
 
-    // state = big theta = [theta_1, theta_2, ..., theta_n]
-    // based on the DOFs
+
+    function draw_coordinate_frame_from_SE3(engine, M) {
+        let scale = 0.05;
+        let basis_x = [scale*M[0][0], scale*M[1][0], scale*M[2][0]];
+        let basis_y = [scale*M[0][1], scale*M[1][1], scale*M[2][1]];
+        let basis_z = [scale*M[0][2], scale*M[1][2], scale*M[2][2]];
+
+        let start_pt = [M[0][3], M[1][3], M[2][3]];
+
+        engine.draw_debug_line(start_pt, add_matrix_matrix(start_pt, basis_x), true, 0.003, 0xff0000, 1.0);
+        engine.draw_debug_line(start_pt, add_matrix_matrix(start_pt, basis_y), true, 0.003, 0x00ff00, 1.0);
+        engine.draw_debug_line(start_pt, add_matrix_matrix(start_pt, basis_z), true, 0.003, 0x0000ff, 1.0);
+    }
+
+    // state = all DOFs = [theta_1, theta_2, ..., theta_n]
+    // returns set of poses for each robot link
     function forward_kinematics(state) {
         let out_poses = [];
         for (let i = 0; i < links.length; i++) {
@@ -207,13 +319,21 @@
         return out_poses;
     }
 
-
     let state = [settings.dof0, settings.dof1, settings.dof2, settings.dof3, settings.dof4, settings.dof5, settings.dof6, settings.dof7];
+    let vis = [settings.link0, settings.link1, settings.link2, settings.link3, settings.link4, settings.link5, settings.link6, settings.link7, settings.link8, settings.link9, settings.link10, settings.link11, settings.link12, settings.link13, settings.link14, settings.link15, settings.link16, settings.link17, settings.link18, settings.link19]
 
     engine.animation_loop( ()  => {
         state = [settings.dof0, settings.dof1, settings.dof2, settings.dof3, settings.dof4, settings.dof5, settings.dof6, settings.dof7];
+        vis = [settings.link0, settings.link1, settings.link2, settings.link3, settings.link4, settings.link5, settings.link6, settings.link7, settings.link8, settings.link9, settings.link10, settings.link11, settings.link12, settings.link13, settings.link14, settings.link15, settings.link16, settings.link17, settings.link18, settings.link19]
+        for (let i = 0; i < engine.mesh_objects.length; i++) {
+            engine.set_mesh_object_visibility(i, settings.display_mesh && vis[i]);
+            engine.set_mesh_object_wireframe_visibility(i, settings.display_wireframe);
+        }
         let poses = forward_kinematics(state);
         for (let i = 0; i < links.length; i++) {
+            if (vis[i] === true) {
+                draw_coordinate_frame_from_SE3(engine, poses[i]);
+            }
             robot.set_link_mesh_pose_from_SE3_matrix(engine, i, poses[i]);
         }
         refresh_displays(gui);
