@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>CPSC 487/587</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19.1/dist/lil-gui.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.3.0/math.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quaternion@1.5.1/quaternion.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/numeric@1.2.6/numeric-1.2.6.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+              "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+              "three/": "https://unpkg.com/three@0.160.0/"
+            }
+        }
+    </script>
+</head>
+<body>
+<script type="module">
+    import {get_default_lil_gui, ThreeEngine, refresh_displays} from "../js/utils/utils_three.js";
+    import {B1Z1Robot, XArm7Robot} from "../js/utils/utils_robot.js";
+    import {identity_matrix, mul_matrix_matrix, add_matrix_matrix} from "../js/utils/utils_math.js";
+
+    // todo: create a visualization that demonstrates your knowledge of forward kinematics on a robot model.
+    // todo: The "default" assignment is to recreate this visualization:
+    // todo: https://yale-cpsc-487-587-internal-djrakita-c95fa6c3239a481a48d29a6b0fd.gitlab.io/html/unit4_visualizations/fk.html
+    // todo: or this visualization:
+    // todo: https://yale-cpsc-487-587-internal-djrakita-c95fa6c3239a481a48d29a6b0fd.gitlab.io/html/unit4_visualizations/fk2.html
+    // todo: however, feel free to deviate from this if you want to.
+    // todo: I will be adding information to the class wiki on important properties and subroutines regarding the robot
+    // todo: object created for this class.  If you have questions, refer to that wiki or ask me over slack.
+
+    function exp_coords_to_so3(u, theta) {
+        let v = [u[0] * theta, u[1] * theta, u[2] * theta];
+        return [[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]];
+    }
+
+    function multiply_matrix_scalar(M, c) {
+        return M.map(row => row.map(elem => c * elem));
+    }
+
+    // convert exponential coords (u, theta) to SO3 matrix
+    function exponential_coords_so3_to_SO3(u, theta) {
+        let m = exp_coords_to_so3(u, theta);
+        let m_sq = mul_matrix_matrix(m, m);
+        let result = identity_matrix(3);
+        let p = 0, q = 0;
+        if (Math.abs(theta) < 0.001) {
+            p = 1 - theta**2 / 6.0 + theta**4 / 120.0;
+            q = 1/2.0 - theta**2 / 24.0 + theta**4 / 720.0;
+        }
+        else {
+            p = Math.sin(theta) / theta;
+            q = (1 - Math.cos(theta)) / theta**2;
+        }
+        let pm = multiply_matrix_scalar(m, p);
+        let qm_sq = multiply_matrix_scalar(m_sq, q);
+        result = add_matrix_matrix(result, pm);
+        return add_matrix_matrix(result, qm_sq);
+    }
+
+    function SO3_and_position_to_SE3(M, t) {
+        let result = identity_matrix(4);
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                result[i][j] = M[i][j];
+            }
+        }
+        for (let i = 0; i < 3; i++) {
+            result[i][3] = t[i];
+        }
+        return result;
+    }
+
+    function revolute_SE3(u, theta) {
+        let M = exponential_coords_so3_to_SO3(u, theta);
+        return SO3_and_position_to_SE3(M, [0, 0, 0]);
+    }
+
+
+    function prismatic_SE3(u, theta) {
+        return SO3_and_position_to_SE3(identity_matrix(3), [u[0] * theta, u[1] * theta, u[2] * theta]);
+    }
+
+    function floating_SE3(u, t) {
+        let theta = Math.sqrt(u[0]**2 + u[1]**2 + u[2]**2);
+        let M = exponential_coords_so3_to_SO3(u, theta);
+        return SO3_and_position_to_SE3(M, t);
+    }
+
+    let engine = ThreeEngine.new_default_3d();
+
+    // if you want to use the XArm7 robot:
+    let robot = new XArm7Robot();
+
+    // or, if you want to use the B1Z1 robot, comment the previous robot and uncomment this line:
+    // let robot = new B1Z1Robot();
+
+    // this will spawn all of the robot's links at the origin
+    robot.spawn_robot(engine);
+
+    let joints = robot.joints;
+    let links = robot.links;
+    let kh = robot.kinematic_hierarchy;
+
+    let settings = {
+        display_mesh: true,
+        display_wireframe: false,
+        dof0: 0,
+        dof1: 0,
+        dof2: 0,
+        dof3: 0,
+        dof4: 0,
+        dof5: 0,
+        dof6: 0,
+        dof7: 0,
+    };
+
+    let actions = {
+        reset: function() {
+            settings.display_mesh = true;
+            settings.wireframe = false;
+            settings.dof0 = 0;
+            settings.dof1 = 0;
+            settings.dof2 = 0;
+            settings.dof3 = 0;
+            settings.dof4 = 0;
+            settings.dof5 = 0;
+            settings.dof6 = 0;
+            settings.dof7 = 0;
+        }
+    }
+
+    let gui = get_default_lil_gui();
+
+    let folder1 = gui.addFolder("Display");
+    folder1.add(settings, 'display_mesh').name("Display Mesh:");
+    folder1.add(settings, 'display_wireframe').name("Display Wireframe:");
+
+    let folder2 = gui.addFolder("DOFs");
+    folder2.add(settings, 'dof0', 0, 0.7).name("dof0:");
+    folder2.add(settings, 'dof1', -6.28, 6.28).name("dof1:");
+    folder2.add(settings, 'dof2', -2.1, 2.1).name("dof2:");
+    folder2.add(settings, 'dof3', -6.28, 6.28).name("dof3:");
+    folder2.add(settings, 'dof4', -0.2, 3.9).name("dof4:");
+    folder2.add(settings, 'dof5', -6.28, 6.28).name("dof5:");
+    folder2.add(settings, 'dof6', -1.7, 3.14).name("dof6:");
+    folder2.add(settings, 'dof7', -6.28, 6.28).name("dof7:");
+
+    let folder3 = gui.addFolder("Actions");
+    folder3.add(actions, 'reset').name("Reset");
+
+
+    // state = big theta = [theta_1, theta_2, ..., theta_n]
+    // based on the DOFs
+    function forward_kinematics(state) {
+        let out_poses = [];
+        for (let i = 0; i < links.length; i++) {
+            // using full SE3
+            out_poses.push(identity_matrix(4));
+        }
+        joints = robot.joints;
+        links = robot.links;
+        kh = robot.kinematic_hierarchy;
+        kh.forEach(level => {
+            level.forEach(link_idx => {
+                if (link_idx !== 0) {
+                    let curr_link = links[link_idx];
+                    let parent_link_idx = curr_link.parent_link_idx;
+                    let parent_joint_idx = curr_link.parent_joint_idx;
+                    let curr_joint = joints[parent_joint_idx];
+                    let joint_type = curr_joint.joint_type_string;
+
+                    // T_i and T_c
+                    let curr_pose = out_poses[parent_link_idx];  // T_i
+                    let T_c = curr_joint.xyz_rpy_SE3_matrix;
+                    curr_pose = mul_matrix_matrix(curr_pose, T_c);
+
+                    let T_v = identity_matrix(4);
+
+                    // T_v based on joint type
+                    if (joint_type === "revolute") {
+                        let theta = state[curr_joint.dof_idx];
+                        let axis = curr_joint.axis;
+                        T_v = revolute_SE3(axis, theta);
+                    }
+                    else if (joint_type === "prismatic") {
+                        let theta = state[curr_joint.dof_idx];
+                        let axis = curr_joint.axis;
+                        T_v = prismatic_SE3(axis, theta);
+                    }
+                    else if (joint_type === "floating") {
+                        let axis = curr_joint.rotation_dof_idxs;
+                        let translation = curr_joint.translation_dof_idxs;
+                        T_v = floating_SE3(axis, translation);
+                    }
+
+                    curr_pose = mul_matrix_matrix(curr_pose, T_v);
+
+                    out_poses[link_idx] = curr_pose;
+                }
+            })
+        })
+        return out_poses;
+    }
+
+
+    let state = [settings.dof0, settings.dof1, settings.dof2, settings.dof3, settings.dof4, settings.dof5, settings.dof6, settings.dof7];
+
+    engine.animation_loop( ()  => {
+        state = [settings.dof0, settings.dof1, settings.dof2, settings.dof3, settings.dof4, settings.dof5, settings.dof6, settings.dof7];
+        let poses = forward_kinematics(state);
+        for (let i = 0; i < links.length; i++) {
+            robot.set_link_mesh_pose_from_SE3_matrix(engine, i, poses[i]);
+        }
+        refresh_displays(gui);
+    });
+
+</script>
+</body>
+</html>
